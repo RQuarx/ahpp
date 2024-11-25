@@ -15,38 +15,41 @@
 using json = nlohmann::json;
 
 
-class AUR_Helper
-{
+class AUR_Helper {
 public:
     int32_t Start(const std::string &install_query, const std::string &search_query, const bool &only_name, const bool &is_list, const bool &update, const bool &no_syu)
     {
         // ? Restrict the use of multiple arguments
         if (Is_More_Than_One_Options(install_query, search_query, is_list, update)) {
             std::cerr << "Error: You can only use a single option at a time!\n";
-            return 1;
+            return FAILED_CODE;
         }
         // ? Checks if --name is being used when --search is not being used
-        if (is_list && search_query.empty()) {
+        if (is_list && !search_query.empty()) {
             std::cerr << "Error: Do not use --name outside of --search!\n";
-            return 1;
+            return FAILED_CODE;
         }
         // ? Checks if --no-sysupgrade is being used when --update is not being used
         if (no_syu && !update) {
             std::cerr << "Error: Do not use --no-sysupgrade outside of --update!\n";
-            return 1;
+            return FAILED_CODE;
         }
 
         if (!search_query.empty()) Search_Packages(search_query, only_name);
         else if (!install_query.empty()) Install_AUR_Package(install_query);
         else if (is_list) List_Package();
         else if (update) Perform_Upgrades(no_syu);
-        return 0;
+        return SUCCESS_CODE;
     }
 
 private:
+    const bool SUCCESS_CODE = 0;
+    const bool FAILED_CODE = 1;
     const std::string HOME_DIR = std::getenv("HOME");
     const std::string INSTALL_PATH = HOME_DIR + "/.cache/hone/";
-    const std::string PKG_LIST_PATH = INSTALL_PATH + "Installed/";
+    const std::string PKG_LIST_PATH = INSTALL_PATH + "installed/";
+    const std::string FILE_OPEN_ERR = "Failed to open file!\n";
+    const std::string PKG_LIST_NAME = "package_list.txt";
 
 
     bool Does_Install_Dir_Exists()
@@ -70,10 +73,10 @@ private:
         if (update) option_count++;
 
         if (option_count > 1) {
-            return 1;
+            return FAILED_CODE;
         }
 
-        return 0;
+        return SUCCESS_CODE;
     }
 
     // ? Callback function to write response data from curl
@@ -154,31 +157,28 @@ private:
     {
         std::string read_buffer;
         CURL *curl = curl_easy_init();
+        if (!curl) return "Not found";
 
-        if (curl) {
-            std::string url = "https://aur.archlinux.org/rpc/?v=5&type=info&arg=" + pkg_name;
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Write_Callback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &read_buffer);
-            curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-            curl_easy_perform(curl);
-            curl_easy_cleanup(curl);
+        std::string url = "https://aur.archlinux.org/rpc/?v=5&type=info&arg=" + pkg_name;
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Write_Callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &read_buffer);
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+        curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
 
-            auto json_response = json::parse(read_buffer);
-            if (json_response["resultcount"] > 0) return json_response["results"][0]["Version"];
-        }
-
-        return "Not found";
+        auto json_response = json::parse(read_buffer);
+        if (json_response["resultcount"] > 0) return json_response["results"][0]["Version"];
     }
 
 
     bool Add_To_List_Install(const std::string &added_package)
     {
         std::string version = Get_Package_Version(added_package);
-        std::ofstream list("package_list.txt", std::ios::app);
+        std::ofstream list(PKG_LIST_NAME, std::ios::app);
 
         if (!list) {
-            std::cerr << "Failed to open file!\n";
+            std::cerr << FILE_OPEN_ERR;
             return false;
         }
 
@@ -191,9 +191,9 @@ private:
     bool Add_To_List_Update(std::vector<std::string> added_packages)
     {
         std::vector<std::string> packages;
-        std::ifstream list_read(PKG_LIST_PATH + "package_list.txt");
+        std::ifstream list_read(PKG_LIST_PATH + PKG_LIST_NAME);
         if (!list_read)  {
-            std::cerr << "Failed to open package list file for reading!\n";
+            std::cerr << FILE_OPEN_ERR;
             return false;
         }
 
@@ -217,9 +217,9 @@ private:
             if (!found) packages.push_back(added_pkg + ' ' + Get_Package_Version(added_pkg));
         }
 
-        std::ofstream list(PKG_LIST_PATH + "package_list.txt", std::ios::trunc);
+        std::ofstream list(PKG_LIST_PATH + PKG_LIST_NAME, std::ios::trunc);
         if (!list) {
-            std::cerr << "Failed to open package list file for writing!\n";
+            std::cerr << FILE_OPEN_ERR;
             return false; 
         }
         for (const auto& pkg : packages) list << pkg << '\n';
@@ -233,16 +233,16 @@ private:
     {
         if (!Does_Package_List_Exists()) {
             std::filesystem::create_directory(PKG_LIST_PATH);
-            std::ofstream list(PKG_LIST_PATH + "package_list.txt");
+            std::ofstream list(PKG_LIST_PATH + PKG_LIST_NAME);
             list.close();
         }
 
         if (add) return Add_To_List_Update(Check_For_Updates());
         if (update) return Add_To_List_Install(added_package);
 
-        std::ifstream list("package_list.txt");
+        std::ifstream list(PKG_LIST_PATH + PKG_LIST_NAME);
         if (!list) {
-            std::cerr << "Failed to open file!\n";
+            std::cerr << FILE_OPEN_ERR;
             return false;
         }
 
@@ -313,10 +313,10 @@ private:
     std::vector<std::string> Check_For_Updates()
     {
         std::vector<std::string> packages_to_update;
-        std::ifstream list(PKG_LIST_PATH + "package_list.txt");
+        std::ifstream list(PKG_LIST_PATH + PKG_LIST_NAME);
 
         if (!list) {
-            std::cerr << "Failed to open package list file!\n";
+            std::cerr << FILE_OPEN_ERR;
             return packages_to_update;
         }
 

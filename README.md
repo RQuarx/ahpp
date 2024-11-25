@@ -39,4 +39,5 @@ hone -u --no-sysupgrade # Updates AUR without updating system
 
 - Add more colours
 - Make code more readable
+- Removing pkgs
 
