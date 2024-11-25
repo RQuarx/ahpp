@@ -1,12 +1,16 @@
-#include "include/CLI11.hpp"
+#include "../include/colours.hpp"
+#include "../include/CLI11.hpp"
 #include <nlohmann/json.hpp>
 #include <curl/curl.h>
 #include <filesystem>
 #include <iostream>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
+#include <array>
+#include <regex>
 
 using json = nlohmann::json;
 
@@ -17,6 +21,29 @@ std::size_t Write_Callback(void *contents, std::size_t size, std::size_t nmemb, 
     std::size_t total_size = size * nmemb;
     userp->append(static_cast<char*>(contents), total_size);
     return total_size;
+}
+
+
+bool Is_Package_Installed(const std::string &pkg_name)
+{
+    std::string command = "pacman -Q " + pkg_name + " 2>/dev/null";
+    std::array<char, 128> buffer;
+    std::string result;
+
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+
+    if (!pipe)
+    {
+        std::cerr << "Failed to know if packages are installed or not\n";
+        return false;
+    }
+
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    {
+        result += buffer.data();
+    }
+
+    return !result.empty();
 }
 
 
@@ -50,14 +77,16 @@ void Search_Packages(const std::string &search_query, const bool &only_name)
 
         if (json_response["resultcount"] > 0)
         {
-            std::cout << "Packages found:\n";
+            std::regex include_pattern(".*" + std::regex_replace(search_query, std::regex(R"([.*+?^${}()|\[\]\\])"), R"(\\$&)") + ".*", std::regex_constants::icase);
 
             if (only_name)
             {
                 for (const auto &pkg : json_response["results"])
                 {
                     std::string pkg_name = pkg.contains("Name") ? pkg["Name"] : "Unknown";
-                    std::cout << pkg_name << '\n';
+
+                    if (std::regex_match(pkg_name, include_pattern))
+                        std::cout << pkg_name << '\n';
                 }
 
                 return;
@@ -68,9 +97,13 @@ void Search_Packages(const std::string &search_query, const bool &only_name)
                 std::string pkg_desc = pkg.contains("Description") ? pkg["Description"] : "No description available";
                 std::string pkg_version = pkg.contains("Version") ? pkg["Version"] : "Unknown";
                 std::string pkg_name = pkg.contains("Name") ? pkg["Name"] : "Unknown";
+                std::string installed_text = Is_Package_Installed(pkg_name) ? "(Installed)" : "";
 
-                std::cout << pkg_name << ' ' << pkg_version << '\n';
-                std::cout << "    " << pkg_desc << '\n';
+                if (std::regex_match(pkg_name, include_pattern))
+                {
+                    std::cout << NAME_COLOUR + pkg_name << ' ' << VERSION_COLOUR + pkg_version << ' ' << INSTALLED_COLOUR + installed_text << '\n';
+                    std::cout << "    " << RESET + pkg_desc << '\n';
+                }
             }
         }
         else
@@ -222,13 +255,13 @@ void Clean(const std::string &package_query)
 
 bool Install_AUR_Package(const std::string &package_query)
 {
-    std::cout << "[INFO]: Cloning package!\n";
+    std::cout << "Cloning package!\n";
     if (!Clone_AUR_Package(package_query))
     {
         return false;
     }
 
-    std::cout << "[INFO]: Building package!\n";
+    std::cout << "Building package!\n";
     if (!Build_Install_Package(package_query))
     {
         return false;
