@@ -3,11 +3,9 @@
 #include <nlohmann/json.hpp>
 #include <curl/curl.h>
 #include <filesystem>
-#include <algorithm>
 #include <iostream>
 #include <cstdlib>
 #include <fstream>
-#include <cctype>
 #include <memory>
 #include <string>
 #include <vector>
@@ -49,28 +47,10 @@ class hone
                 return 1;
             }
 
-            if (!search_query.empty())
-            {
-                Search_Packages(search_query, only_name);
-                return 0;
-            }
-
-            if (!install_query.empty())
-            {
-                Install_AUR_Package(install_query);
-                return 0;
-            }
-
-            if (is_list)
-            {
-                List_Package();
-                return 0;
-            }
-
-            if (update)
-            {
-                Perform_Upgrades(no_syu);
-            }
+            if (!search_query.empty()) Search_Packages(search_query, only_name);
+            else if (!install_query.empty()) Install_AUR_Package(install_query);
+            else if (is_list) List_Package();
+            else if (update) Perform_Upgrades(no_syu);
             return 0;
         }
     
