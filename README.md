@@ -20,6 +20,8 @@ sudo pacman -S git curl nlohmann-json
 git clone https://github.com/RQuarx/hone
 cd hone
 ./build.sh
+cd target
+chmod +x hone
 ```
 
 ## Usage
