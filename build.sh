@@ -1,2 +1,2 @@
 mkdir target
-g++ -o target/hone hone.cpp -lcurl -I include
+g++ -o target/hone src/hone.cpp -lcurl -I include
