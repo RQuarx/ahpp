@@ -35,3 +35,8 @@ hone -u # Updates AUR packages that is outdated from the list files
 hone -u --no-sysupgrade # Updates AUR without updating system
 ```
 
+## TODO's
+
+- Add more colours
+- Make code more readable
+
