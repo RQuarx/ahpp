@@ -29,7 +29,7 @@ chmod +x hone
 ```sh
 hone -s [package] # Search for packages in the AUR
 hone -n -s [package] # Search for packages, but only list names
-home -d [package] # Download package
+hone -d [package] # Download package
 hone -l # List downloaded packages
 hone -u # Updates AUR packages that is outdated from the list files
 hone -u --no-sysupgrade # Updates AUR without updating system
