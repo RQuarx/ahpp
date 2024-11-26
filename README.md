@@ -9,7 +9,7 @@ As other helpers implement more features to be different than the others, hone o
 - Searching package 
 - Updating package 
 
-and not with other helpers such as Yay, that allows you to install from Arch's main repository, hone only install, and search from the AUR.
+and not with other helpers such as Yay, that allows you to install from Arch's main repository. Hone only install, and search from the AUR.
 
 This allows hone to be as lightweight as possible.
 
