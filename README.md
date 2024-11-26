@@ -32,9 +32,11 @@ chmod +x hone
 ## Usage
 
 ```sh
-hone -s [package] # Search for packages in the AUR
-hone -n -s [package] # Search for packages, but only list names
-hone -d [package] # Download package
-hone -l # List downloaded packages
-hone -u # Updates AUR packages that is outdated from the list files
-hone -u --no-sysupgrade # Updates AUR without updating system
+hone -s --search [package] # Search for packages in the AUR
+        -n --name # Search for packages, but only list names
+hone -S --Sync [package] # Download package
+hone -R --Remove [package] # Removes a package
+hone -Q --Query # List downloaded packages
+hone -U --update # Updates outdated AUR package
+        --no-sysupgrade # Updates AUR without updating system
+```
