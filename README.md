@@ -38,13 +38,3 @@ hone -d [package] # Download package
 hone -l # List downloaded packages
 hone -u # Updates AUR packages that is outdated from the list files
 hone -u --no-sysupgrade # Updates AUR without updating system
-```
-
-## TODO's
-
-- Add more colours
-- Make code more readable
-- Removing pkgs
-- Remove the need to use a list file to list installed AUR pkgs
-- Update pkgs from the git directory without reinstalling a pkg
-
