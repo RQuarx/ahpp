@@ -2,11 +2,16 @@
 
 Hone is an "AUR Helper" written in C++
 
-## Features
+## Differences with other helpers
 
-- Install package
-- Search package
-- List installed package
+As other helpers implement more features to be different than the others, hone only implement specific features you need, such as:
+- Installing package 
+- Searching package 
+- Updating package 
+
+and not with other helpers such as Yay, that allows you to install from Arch's main repository, hone only install, and search from the AUR.
+
+This allows hone to be as lightweight as possible.
 
 ## Installation
 
